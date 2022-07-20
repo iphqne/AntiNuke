@@ -8,13 +8,13 @@ namespace AntiNuke
 {
     internal class Program
     {
-        public static Timer Timer;
-        public static Timer Timer2;
+        public static Timer? Timer;
+        public static Timer? Timer2;
         public static List<ulong> Channels = new List<ulong>();
         public static int deletedChannels = 0;
         public static int bannedUsers = 0;
         public static ulong Offender;
-        public static DiscordSocketClient DiscordSocketClient = new DiscordSocketClient(new DiscordSocketConfig { ApiVersion = 8, Cache = false } );
+        public static DiscordSocketClient DiscordSocketClient = new DiscordSocketClient(new DiscordSocketConfig { ApiVersion = 8, Cache = false });
 
         static void Main(string[] args)
         {
