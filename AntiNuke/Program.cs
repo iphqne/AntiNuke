@@ -14,7 +14,7 @@ namespace AntiNuke
         public static int deletedChannels = 0;
         public static int bannedUsers = 0;
         public static ulong Offender;
-        public static DiscordSocketClient DiscordSocketClient = new DiscordSocketClient(new DiscordSocketConfig { ApiVersion = 8, Cache = false });
+        public static DiscordSocketClient DiscordSocketClient = new DiscordSocketClient(new DiscordSocketConfig { ApiVersion = 9, Cache = false } );
 
         static void Main(string[] args)
         {
