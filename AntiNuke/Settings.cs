@@ -10,6 +10,6 @@
         public static int maxChannelDeletions = 2; //channel deletions before the user gets banned
         public static int maxBannedUsers = 2; //banned users before the user gets banned
         public static int maxRoleDeletions = 2; //role deletions before the user gets banned
-        public static int Timeframe = 10; //in seconds
+        public static int Timeframe = 5; //in seconds
     }
 }
