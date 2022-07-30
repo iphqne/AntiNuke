@@ -14,7 +14,6 @@
     </PackageReference>
     <PackageReference Include="Leaf.xNet" Version="5.2.10" />
     <PackageReference Include="Newtonsoft.Json" Version="13.0.1" />
-    <PackageReference Include="WebSocketSharp" Version="1.0.3-rc11" />
     <PackageReference Include="websocketsharp.core" Version="1.0.0" />
   </ItemGroup>
 
