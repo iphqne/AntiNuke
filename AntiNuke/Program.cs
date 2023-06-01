@@ -1,8 +1,6 @@
 ﻿using System;
-using System.Threading;
 using Discord.Gateway;
 using Discord;
-using System.Collections.Generic;
 
 namespace AntiNuke
 {
@@ -13,6 +11,7 @@ namespace AntiNuke
         public static List<ulong> Channels = new List<ulong>();
         public static int deletedChannels = 0;
         public static int bannedUsers = 0;
+        public static int kickedUsers = 0;
         public static int roleDeletions = 0;
         public static ulong Offender;
         public static DiscordSocketClient DiscordSocketClient = new DiscordSocketClient(new DiscordSocketConfig { ApiVersion = 9, Cache = false } );
@@ -36,6 +35,7 @@ namespace AntiNuke
 
             DiscordSocketClient.OnChannelDeleted += DiscordSocketClient_OnChannelDeleted;
             DiscordSocketClient.OnUserBanned += DiscordSocketClient_OnUserBanned;
+            DiscordSocketClient.OnUserLeftGuild += DiscordSocketClient_OnUserLeftGuild;
             DiscordSocketClient.OnRoleDeleted += DiscordSocketClient_OnRoleDeleted;
 
             try
@@ -68,6 +68,7 @@ namespace AntiNuke
         {
             deletedChannels = 0;
             bannedUsers = 0;
+            kickedUsers = 0;
             roleDeletions = 0;
         }
 
@@ -91,6 +92,15 @@ namespace AntiNuke
                 }
             }
 
+            if (Settings.checkKickedUsers)
+            {
+                if (kickedUsers >= Settings.maxKickedUsers)
+                {
+                    punishmentHandler(Types.Kicks, DiscordSocketClient);
+                    kickedUsers = 0;
+                }
+            }
+
             if (Settings.checkRoleDeletions)
             {
                 if (roleDeletions >= Settings.maxRoleDeletions)
@@ -109,7 +119,7 @@ namespace AntiNuke
             {
                 if (Channels.Contains(ChannelEventArgs.Channel.Id))
                 {
-                    deletedChannels = deletedChannels + 1;
+                    deletedChannels++;
                     foreach (var audit in DiscordSocketClient.GetAuditLog(Settings.serverId, AuditLogFilters))
                     {
                         if (audit.Type == AuditLogActionType.ChannelDelete && audit.TargetId == ChannelEventArgs.Channel.Id)
@@ -127,11 +137,29 @@ namespace AntiNuke
             {
                 if (BanUpdateEventArgs.Guild.Id == Settings.serverId)
                 {
-                    bannedUsers = bannedUsers + 1;
+                    bannedUsers++;
                     foreach (var audit in DiscordSocketClient.GetAuditLog(Settings.serverId, AuditLogFilters))
                     {
-                        if (audit.Type == AuditLogActionType.MemberBan && audit.ChangerId != DiscordSocketClient.User.Id)
+                        if (audit.ChangerId != DiscordSocketClient.User.Id && audit.Type == AuditLogActionType.MemberBan)
                         {
+                            Offender = audit.ChangerId;
+                        }
+                    }
+                }
+            }
+        }
+
+        public static void DiscordSocketClient_OnUserLeftGuild(DiscordSocketClient DiscordSocketClient, MemberRemovedEventArgs MemberRemovedEventArgs)
+        {
+            if (Settings.checkKickedUsers)
+            {
+                if (MemberRemovedEventArgs.Member.Guild.Id == Settings.serverId)
+                {
+                    foreach (var audit in DiscordSocketClient.GetAuditLog(Settings.serverId, AuditLogFilters))
+                    {
+                        if (audit.ChangerId != DiscordSocketClient.User.Id && audit.Type == AuditLogActionType.MemberKick)
+                        {
+                            kickedUsers++;
                             Offender = audit.ChangerId;
                         }
                     }
@@ -145,10 +173,10 @@ namespace AntiNuke
             {
                 if (RoleDeletedEventArgs.Role.Guild.Id == Settings.serverId)
                 {
-                    roleDeletions = roleDeletions + 1;
+                    roleDeletions++;
                     foreach (var audit in DiscordSocketClient.GetAuditLog(Settings.serverId, AuditLogFilters))
                     {
-                        if (audit.Type == AuditLogActionType.RoleDelete)
+                        if (audit.ChangerId != DiscordSocketClient.User.Id && audit.Type == AuditLogActionType.RoleDelete)
                         {
                             Offender = audit.ChangerId;
                         }
@@ -167,7 +195,7 @@ namespace AntiNuke
                         {
                             if (deletedChannels > 0)
                             {
-                                DiscordSocketClient.BanGuildMember(Settings.serverId, Offender, $"Detected by AntiNuke (deleting channels)");
+                                DiscordSocketClient.BanGuildMember(Settings.serverId, Offender, "Attempting to nuke (deleting channels)");
                                 Console.WriteLine($"Banned {DiscordSocketClient.GetUser(Offender).Username} for deleting channels");
                                 deletedChannels = 0;
                             }
@@ -182,12 +210,27 @@ namespace AntiNuke
                         {
                             if (bannedUsers > 0)
                             {
-                                DiscordSocketClient.BanGuildMember(Settings.serverId, Offender, $"Detected by AntiNuke (banning users)");
+                                DiscordSocketClient.BanGuildMember(Settings.serverId, Offender, "Attempting to nuke (banning users)");
                                 Console.WriteLine($"Banned {DiscordSocketClient.GetUser(Offender).Username} for banning users");
                                 bannedUsers = 0;
                             }
                         }
                         catch (Exception) { bannedUsers = 0; } //just going to assume there is no permissions to ban the user so leaving this like this
+                    }
+                    break;
+
+                case Types.Kicks:
+                    {
+                        try
+                        {
+                            if (kickedUsers > 0)
+                            {
+                                DiscordSocketClient.BanGuildMember(Settings.serverId, Offender, "Attempting to nuke (kicking users)");
+                                Console.WriteLine($"Banned {DiscordSocketClient.GetUser(Offender).Username} for kicking users");
+                                bannedUsers = 0;
+                            }
+                        }
+                        catch (Exception) { kickedUsers = 0; } //just going to assume there is no permissions to ban the user so leaving this like this
                     }
                     break;
 
@@ -197,7 +240,7 @@ namespace AntiNuke
                         {
                             if (roleDeletions > 0)
                             {
-                                DiscordSocketClient.BanGuildMember(Settings.serverId, Offender, $"Detected by AntiNuke (deleting roles)");
+                                DiscordSocketClient.BanGuildMember(Settings.serverId, Offender, "Attempting to nuke (deleting roles)");
                                 Console.WriteLine($"Banned {DiscordSocketClient.GetUser(Offender).Username} for deleting roles");
                                 roleDeletions = 0;
                             }
@@ -209,6 +252,7 @@ namespace AntiNuke
 
             deletedChannels = 0;
             bannedUsers = 0;
+            kickedUsers = 0;
             roleDeletions = 0;
         }
     }

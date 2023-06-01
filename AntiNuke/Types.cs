@@ -4,6 +4,7 @@
     {
         Channels,
         Bans,
+        Kicks,
         Roles
     }
 }
